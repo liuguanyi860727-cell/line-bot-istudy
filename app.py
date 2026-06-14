@@ -16,9 +16,8 @@ app = Flask(__name__)
 LINE_CHANNEL_ACCESS_TOKEN = os.environ["LINE_CHANNEL_ACCESS_TOKEN"]
 LINE_CHANNEL_SECRET = os.environ["LINE_CHANNEL_SECRET"]
 GEMINI_API_KEY = os.environ["GEMINI_API_KEY"]
-
-# 課表檔案 ID（2026暑假課表，公開連結）
-SCHEDULE_FILE_ID = "1JuUl9oPPCbNA-KiGlWAqchatd06Ml4Zk"
+GOOGLE_DRIVE_API_KEY = os.environ["GOOGLE_DRIVE_API_KEY"]
+SCHEDULE_FOLDER_ID = os.environ.get("SCHEDULE_FOLDER_ID", "1xoPDyT53_5OmrwiNnBmWcZ6t0JfgOCHj")
 
 line_bot_api = LineBotApi(LINE_CHANNEL_ACCESS_TOKEN)
 handler = WebhookHandler(LINE_CHANNEL_SECRET)
@@ -26,9 +25,34 @@ genai.configure(api_key=GEMINI_API_KEY)
 gemini = genai.GenerativeModel("gemini-1.5-flash")
 
 
+def get_current_week_file_id():
+    """在 Google Drive 資料夾裡找最新的課表檔案"""
+    url = "https://www.googleapis.com/drive/v3/files"
+    params = {
+        "q": f"'{SCHEDULE_FOLDER_ID}' in parents and trashed=false",
+        "key": GOOGLE_DRIVE_API_KEY,
+        "orderBy": "createdTime desc",
+        "fields": "files(id,name)",
+        "pageSize": 20,
+    }
+    try:
+        resp = requests.get(url, params=params, timeout=10)
+        if resp.status_code == 200:
+            for f in resp.json().get("files", []):
+                name = f["name"]
+                if "課程表" in name or name.lower().endswith(".xlsx"):
+                    return f["id"]
+    except Exception:
+        pass
+    return None
+
+
 def get_latest_schedule_text():
-    """從公開的 Google Drive 下載課表 Excel 並轉成文字"""
-    url = f"https://drive.google.com/uc?export=download&id={SCHEDULE_FILE_ID}"
+    """從 Google Drive 自動找最新課表 Excel 並轉成文字"""
+    file_id = get_current_week_file_id()
+    if not file_id:
+        return None, None
+    url = f"https://drive.google.com/uc?export=download&id={file_id}"
     resp = requests.get(url, timeout=30)
     if resp.status_code != 200:
         return None, None
