@@ -29,27 +29,16 @@ def call_gemini(prompt):
     payload = {
         "contents": [{"parts": [{"text": prompt}]}]
     }
-    # 先試 query param（標準 API key 方式）
     resp = requests.post(
         url,
         params={"key": GEMINI_API_KEY},
         json=payload,
         timeout=30
     )
+    print(f"[Gemini] status={resp.status_code} key_prefix={GEMINI_API_KEY[:8]}... body={resp.text[:400]}")
     if resp.status_code == 200:
         data = resp.json()
         return data["candidates"][0]["content"]["parts"][0]["text"]
-    # 如果 query param 失敗，試 Bearer token（AQ.xxx 可能是 OAuth token）
-    if resp.status_code in (401, 403):
-        resp2 = requests.post(
-            url,
-            headers={"Authorization": f"Bearer {GEMINI_API_KEY}"},
-            json=payload,
-            timeout=30
-        )
-        if resp2.status_code == 200:
-            data = resp2.json()
-            return data["candidates"][0]["content"]["parts"][0]["text"]
     return None
 
 
@@ -159,6 +148,14 @@ def handle_message(text):
         )
 
     return None
+
+
+@app.route("/test")
+def test():
+    url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent"
+    payload = {"contents": [{"parts": [{"text": "Say hello in one word"}]}]}
+    resp = requests.post(url, params={"key": GEMINI_API_KEY}, json=payload, timeout=30)
+    return f"KEY_PREFIX={GEMINI_API_KEY[:8]}... STATUS={resp.status_code}\n\n{resp.text[:1000]}"
 
 
 @app.route("/webhook", methods=["POST"])
