@@ -18,6 +18,7 @@ LINE_CHANNEL_SECRET = os.environ["LINE_CHANNEL_SECRET"]
 GEMINI_API_KEY = os.environ["GEMINI_API_KEY"]
 GOOGLE_DRIVE_API_KEY = os.environ.get("GOOGLE_DRIVE_API_KEY", os.environ.get("GEMINI_API_KEY", ""))
 SCHEDULE_FOLDER_ID = os.environ.get("SCHEDULE_FOLDER_ID", "1xoPDyT53_5OmrwiNnBmWcZ6t0JfgOCHj")
+FALLBACK_SCHEDULE_FILE_ID = os.environ.get("SCHEDULE_FILE_ID", "1JuUl9oPPCbNA-KiGlWAqchatd06Ml4Zk")
 
 line_bot_api = LineBotApi(LINE_CHANNEL_ACCESS_TOKEN)
 handler = WebhookHandler(LINE_CHANNEL_SECRET)
@@ -44,7 +45,7 @@ def get_current_week_file_id():
                     return f["id"]
     except Exception:
         pass
-    return None
+    return FALLBACK_SCHEDULE_FILE_ID
 
 
 def get_latest_schedule_text():
