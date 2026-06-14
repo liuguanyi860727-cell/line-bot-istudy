@@ -108,7 +108,7 @@ def query_schedule_for_student(student_name, schedule_text):
 請找出學生「{student_name}」的所有上課時間和科目，用清楚的格式列出。
 如果找不到這個學生，請說「找不到 {student_name} 的課表資料，請確認姓名是否正確」。
 只回覆課表資訊，不要加其他說明。"""
-    response = gemini_client.models.generate_content(model="gemini-2.0-flash", contents=prompt)
+    response = gemini_client.models.generate_content(model="gemini-1.5-flash", contents=prompt)
     return response.text
 
 
@@ -121,7 +121,7 @@ def query_schedule_for_teacher(teacher_name, schedule_text):
 請找出老師「{teacher_name}」這週要教的所有學生、科目和上課時間，用清楚的格式列出。
 如果找不到這個老師，請說「找不到 {teacher_name} 老師的課表資料，請確認姓名是否正確」。
 只回覆課表資訊，不要加其他說明。"""
-    response = gemini_client.models.generate_content(model="gemini-2.0-flash", contents=prompt)
+    response = gemini_client.models.generate_content(model="gemini-1.5-flash", contents=prompt)
     return response.text
 
 
