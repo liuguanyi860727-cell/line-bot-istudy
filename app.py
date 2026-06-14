@@ -2,6 +2,7 @@ import os
 import re
 import json
 import tempfile
+from datetime import datetime, timedelta
 from flask import Flask, request, abort
 from linebot import LineBotApi, WebhookHandler
 from linebot.exceptions import InvalidSignatureError
@@ -25,8 +26,21 @@ handler = WebhookHandler(LINE_CHANNEL_SECRET)
 gemini_client = google_genai.Client(api_key=GEMINI_API_KEY)
 
 
+def get_current_week_pattern():
+    """計算本週週一到週六的日期字串，如 0615-0620"""
+    today = datetime.now()
+    weekday = today.weekday()  # 0=週一, 6=週日
+    if weekday == 6:  # 週日往前看下週
+        monday = today + timedelta(days=1)
+    else:
+        monday = today - timedelta(days=weekday)
+    saturday = monday + timedelta(days=5)
+    return f"{monday.strftime('%m%d')}-{saturday.strftime('%m%d')}"
+
+
 def get_current_week_file_id():
-    """在 Google Drive 資料夾裡找最新的課表檔案"""
+    """在 Google Drive 資料夾裡找當週課表（優先找 MMDD-MMDD 格式）"""
+    week_pattern = get_current_week_pattern()
     url = "https://www.googleapis.com/drive/v3/files"
     params = {
         "q": f"'{SCHEDULE_FOLDER_ID}' in parents and trashed=false",
@@ -38,9 +52,14 @@ def get_current_week_file_id():
     try:
         resp = requests.get(url, params=params, timeout=10)
         if resp.status_code == 200:
-            for f in resp.json().get("files", []):
-                name = f["name"]
-                if "課程表" in name or name.lower().endswith(".xlsx"):
+            files = resp.json().get("files", [])
+            # 先找當週（MMDD-MMDD格式）
+            for f in files:
+                if week_pattern in f["name"]:
+                    return f["id"]
+            # 找任何課程表
+            for f in files:
+                if "課程表" in f["name"] or f["name"].lower().endswith(".xlsx"):
                     return f["id"]
     except Exception:
         pass
